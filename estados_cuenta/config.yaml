@@ -1,5 +1,5 @@
 name: Estados de cuenta
-version: "1.0.0"
+version: "1.0.1"
 slug: estados_cuenta
 description: Guarda en Nextcloud los estados de cuenta que llegan por correo y avisa por Telegram a través de Home Assistant
 url: https://github.com/eduardocortesaldana/ha-addons/tree/main/estados_cuenta

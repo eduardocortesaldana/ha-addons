@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.0.1
+
+- `modo = huella` solo necesita `nc_url`: sirve antes de llenar las contraseñas.
+
 ## 1.0.0
 
 - Primera versión como add-on. Mismo servicio que corría en el VPS, con las contraseñas como opciones del add-on, avisos por el proxy del Supervisor y modos de prueba (`huella`, `probar-correo`, `probar-avisos`, `simular`).

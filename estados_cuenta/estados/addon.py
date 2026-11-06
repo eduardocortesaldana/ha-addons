@@ -33,7 +33,11 @@ def leer_opciones():
         o = json.loads(OPCIONES.read_text(encoding="utf-8"))
     except FileNotFoundError:
         sys.exit(f"No encontré las opciones del add-on en {OPCIONES}.")
-    faltan = [k for k in OBLIGATORIAS if not str(o.get(k, "") or "").strip()]
+    if str(o.get("modo") or "") == "huella":
+        obligatorias = ("nc_url",)  # para sacar la huella solo hace falta la dirección de Nextcloud
+    else:
+        obligatorias = OBLIGATORIAS
+    faltan = [k for k in obligatorias if not str(o.get(k, "") or "").strip()]
     if faltan:
         sys.exit("Faltan opciones: " + ", ".join(faltan)
                  + ". Llénalas en la pestaña Configuración del add-on y vuelve a iniciarlo.")
@@ -120,8 +124,17 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         datefmt="%Y-%m-%d %H:%M:%S")
     o = leer_opciones()
-    preparar_entorno(o)
     modo = str(o.get("modo") or "simular")
+    if modo == "huella":
+        try:
+            h = nextcloud.huella_servidor(str(o["nc_url"]).strip())
+            log.info("Huella SHA-256 del certificado de Nextcloud: %s", h)
+            log.info("Cópiala en la opción nc_huella_sha256, llena lo que falte y vuelve a iniciar el add-on.")
+        except Exception as e:  # noqa: BLE001
+            log.error("No pude leer el certificado de %s: %s", o["nc_url"], e)
+        guardar_opciones({**o, "modo": "simular"})
+        return
+    preparar_entorno(o)
     log.info("Add-on estados-cuenta. Modo: %s. Buzón: %s, carpeta «%s». Nextcloud: %s como %s, carpeta «%s».",
              modo, o["imap_usuario"], o["imap_carpeta"], o["nc_url"], o["nc_usuario"], o["nc_carpeta"])
 
@@ -134,16 +147,6 @@ def main():
         banderas.append("--releer")
         cambios["releer_todo"] = False
 
-    if modo == "huella":
-        try:
-            h = nextcloud.huella_servidor(os.environ["NC_URL"])
-            log.info("Huella SHA-256 del certificado de Nextcloud: %s", h)
-            log.info("Cópiala en la opción nc_huella_sha256 y vuelve a iniciar el add-on.")
-        except Exception as e:  # noqa: BLE001
-            log.error("No pude leer el certificado de %s: %s", os.environ["NC_URL"], e)
-        cambios["modo"] = "simular"
-        guardar_opciones({**o, **cambios})
-        return
     if modo == "probar-avisos":
         correr_una_vez(["--probar-avisos"])
         cambios["modo"] = modo = "simular"
