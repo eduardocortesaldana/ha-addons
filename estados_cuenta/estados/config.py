@@ -64,6 +64,7 @@ class Avisos:
     servicio: str = ""
     token: str = ""
     chat_id: str = ""
+    datos: dict = None          # home_assistant: campos extra para el servicio (p. ej. entity_id, message_thread_id)
 
 
 @dataclass
@@ -148,10 +149,14 @@ def cargar(ruta=None):
     a = datos.get("avisos") or {}
     tipo = a.get("tipo", "home_assistant")
     if tipo == "home_assistant":
+        datos = a.get("datos") or {}
+        if not isinstance(datos, dict):
+            raise ErrorConfig("avisos.datos debe ser un diccionario (campo: valor)")
         avisos = Avisos(tipo, url=str(a.get("url", "")).rstrip("/"),
-                        servicio=a.get("servicio", "notify.telegram"), token=_env("HA_TOKEN", False))
+                        servicio=a.get("servicio", "telegram_bot.send_message"), token=_env("HA_TOKEN", False),
+                        datos=datos)
         if not avisos.url or "." not in avisos.servicio:
-            raise ErrorConfig('avisos: falta "url" o "servicio" (ej. notify.telegram)')
+            raise ErrorConfig('avisos: falta "url" o "servicio" (ej. telegram_bot.send_message)')
     elif tipo == "telegram":
         avisos = Avisos(tipo, url=a.get("url", "https://api.telegram.org").rstrip("/"),
                         token=_env("TELEGRAM_TOKEN", False), chat_id=_env("TELEGRAM_CHAT_ID", False))

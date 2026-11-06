@@ -44,6 +44,20 @@ def leer_opciones():
     return o
 
 
+def datos_aviso(o):
+    """Campos extra del servicio de aviso: la entidad del chat de Telegram y, si hay, el tema del grupo."""
+    d = {}
+    if str(o.get("avisos_entidad") or "").strip():
+        d["entity_id"] = str(o["avisos_entidad"]).strip()
+    try:
+        tema = int(o.get("avisos_tema") or 0)
+    except (TypeError, ValueError):
+        tema = 0
+    if tema > 0:
+        d["message_thread_id"] = tema
+    return d
+
+
 def armar_bancos_yml(o):
     """El bancos.yml del servicio, generado a partir de las opciones (sin contraseñas)."""
     return {
@@ -51,7 +65,8 @@ def armar_bancos_yml(o):
         "revisar_cada_min": int(o.get("revisar_cada_min") or 10),
         "recordatorios_entre": [10, 21],
         "avisos": {"tipo": "home_assistant", "url": f"{SUPERVISOR}/core",
-                   "servicio": o.get("avisos_servicio") or "notify.telegram"},
+                   "servicio": o.get("avisos_servicio") or "telegram_bot.send_message",
+                   "datos": datos_aviso(o)},
         "buzones": {"principal": {"servidor": o["imap_servidor"], "puerto": int(o.get("imap_puerto") or 993),
                                   "usuario": o["imap_usuario"], "clave_env": "IMAP_CLAVE",
                                   "carpeta": o["imap_carpeta"]}},

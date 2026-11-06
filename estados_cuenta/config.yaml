@@ -1,5 +1,5 @@
 name: Estados de cuenta
-version: "1.0.1"
+version: "1.0.2"
 slug: estados_cuenta
 description: Guarda en Nextcloud los estados de cuenta que llegan por correo y avisa por Telegram a través de Home Assistant
 url: https://github.com/eduardocortesaldana/ha-addons/tree/main/estados_cuenta
@@ -29,7 +29,9 @@ options:
   bbva_archivo: "{anio}-{mes} BBVA.pdf"
   bbva_pdf_clave: ""
   bbva_remitente: bbva.mx
-  avisos_servicio: notify.telegram
+  avisos_servicio: telegram_bot.send_message
+  avisos_entidad: ""
+  avisos_tema: 0
   recordatorio_desde_dia: 5
   recordatorio_cada_dias: 2
   revisar_cada_min: 10
@@ -53,6 +55,8 @@ schema:
   bbva_pdf_clave: password?
   bbva_remitente: str
   avisos_servicio: str
+  avisos_entidad: str?
+  avisos_tema: int(0,100000)?
   recordatorio_desde_dia: int(1,28)
   recordatorio_cada_dias: int(1,15)
   revisar_cada_min: int(2,120)

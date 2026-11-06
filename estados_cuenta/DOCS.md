@@ -24,7 +24,9 @@ Los avisos son solo texto (banco, mes y nombre del archivo); el PDF nunca sale p
 | `bbva_nombre`, `bbva_archivo` | Cómo se llama el banco en los avisos y cómo se nombra cada archivo (`{anio}` y `{mes}` se sustituyen). |
 | `bbva_pdf_clave` | Contraseña de los PDF que manda BBVA. |
 | `bbva_remitente` | Dominio o dirección del banco (`bbva.mx` cubre cualquier `@bbva.mx`). |
-| `avisos_servicio` | El servicio de notificación de Home Assistant, por ejemplo `notify.telegram`. |
+| `avisos_servicio` | El servicio de Home Assistant que manda el aviso. Con la integración de Telegram actual es `telegram_bot.send_message`. |
+| `avisos_entidad` | La entidad del chat de Telegram, por ejemplo `notify.casa_ha` (se ve en Ajustes → Dispositivos → Telegram). Vacío manda al chat por defecto del bot. |
+| `avisos_tema` | Si el grupo tiene temas, el número del tema donde caen los avisos. `0` manda al general. |
 | `recordatorio_desde_dia`, `recordatorio_cada_dias` | Desde qué día del mes recordar que falta el estado, y cada cuántos días. |
 | `empezar_de_cero` | Un solo uso: olvida en qué correo iba y avisa solo de lo que llegue desde ahora. Se regresa a `false` sola. |
 | `releer_todo` | Un solo uso: procesa todos los correos de la carpeta. Lo que ya está en Nextcloud no se repite ni se avisa. Se regresa a `false` sola. |

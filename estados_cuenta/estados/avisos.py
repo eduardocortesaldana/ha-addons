@@ -1,4 +1,4 @@
-"""Avisos: por Home Assistant (p. ej. notify.telegram) o directo por Telegram. Si falla, reintenta."""
+"""Avisos: por Home Assistant (p. ej. telegram_bot.send_message) o directo por Telegram. Si falla, reintenta."""
 import logging
 
 import requests
@@ -20,8 +20,10 @@ class Notificador:
         c = self.cfg
         if c.tipo == "home_assistant":
             dominio, servicio = c.servicio.split(".", 1)
+            carga = dict(c.datos or {})
+            carga["message"] = texto
             r = requests.post(f"{c.url}/api/services/{dominio}/{servicio}", timeout=20,
-                              headers={"Authorization": f"Bearer {c.token}"}, json={"message": texto})
+                              headers={"Authorization": f"Bearer {c.token}"}, json=carga)
         else:
             r = requests.post(f"{c.url}/bot{c.token}/sendMessage", timeout=20,
                               json={"chat_id": c.chat_id, "text": texto, "disable_web_page_preview": True})
