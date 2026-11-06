@@ -144,7 +144,10 @@ def main():
         try:
             h = nextcloud.huella_servidor(str(o["nc_url"]).strip())
             log.info("Huella SHA-256 del certificado de Nextcloud: %s", h)
-            log.info("Cópiala en la opción nc_huella_sha256, llena lo que falte y vuelve a iniciar el add-on.")
+            log.info("Si Nextcloud usa un certificado propio (autofirmado), cópiala en la opción nc_huella_sha256. "
+                     "Si usa un certificado válido (por ejemplo de Let's Encrypt), deja nc_huella_sha256 vacía: "
+                     "se verifica como en un navegador y no hay que actualizarla en cada renovación. "
+                     "Luego llena lo que falte y vuelve a iniciar el add-on.")
         except Exception as e:  # noqa: BLE001
             log.error("No pude leer el certificado de %s: %s", o["nc_url"], e)
         guardar_opciones({**o, "modo": "simular"})

@@ -17,9 +17,9 @@ Los avisos son solo texto (banco, mes y nombre del archivo); el PDF nunca sale p
 | `modo` | `simular`: muestra qué haría, sin guardar ni avisar, y no recuerda nada entre reinicios. `normal`: trabaja de verdad. `probar-correo`, `probar-avisos` y `huella`: pruebas de un solo uso (ver abajo). |
 | `imap_servidor`, `imap_puerto`, `imap_usuario`, `imap_clave` | El buzón. Puerto 993 con TLS. |
 | `imap_carpeta` | La carpeta del buzón donde caen los estados. `INBOX` es la bandeja; las subcarpetas van con `/`, por ejemplo `Bancos/BBVA/Estados de Cuenta`. |
-| `nc_url` | Nextcloud, por ejemplo `https://192.168.0.183:8099`. |
+| `nc_url` | Nextcloud, por ejemplo `https://nube.midominio.com` o `https://192.168.0.183:8099`. |
 | `nc_usuario`, `nc_clave` | El usuario del servicio y su contraseña de aplicación. |
-| `nc_huella_sha256` | Huella del certificado de Nextcloud. Obligatoria si `nc_url` es `https://` con certificado propio; se saca con `modo = huella`. |
+| `nc_huella_sha256` | Solo si Nextcloud usa un **certificado propio (autofirmado)**: su huella SHA-256, que se saca con `modo = huella`. Si Nextcloud tiene un certificado válido (por ejemplo de Let's Encrypt), **déjala vacía**: el add-on lo verifica como un navegador y no hay que tocar nada cuando el certificado se renueve. |
 | `nc_carpeta` | Carpeta de Nextcloud donde se guardan los estados, vista desde `nc_usuario`. |
 | `bbva_nombre`, `bbva_archivo` | Cómo se llama el banco en los avisos y cómo se nombra cada archivo (`{anio}` y `{mes}` se sustituyen). |
 | `bbva_pdf_clave` | Contraseña de los PDF que manda BBVA. |
@@ -33,7 +33,7 @@ Los avisos son solo texto (banco, mes y nombre del archivo); el PDF nunca sale p
 
 ## Cómo ponerlo en marcha
 
-1. Instala el add-on, llena las opciones y déjalo en `modo = huella`. Inícialo y abre su registro: muestra la huella del certificado de Nextcloud. Cópiala en `nc_huella_sha256`. El add-on se detiene solo.
+1. Instala el add-on y llena las opciones. Si tu Nextcloud tiene un certificado válido (Let's Encrypt u otro), deja `nc_huella_sha256` vacía y pasa al punto 2. Si usa un certificado propio (autofirmado), déjalo en `modo = huella`, inícialo y abre su registro: muestra la huella del certificado. Cópiala en `nc_huella_sha256`. El add-on se detiene solo.
 2. `modo = probar-correo` e inicia: el registro muestra los correos del banco de los últimos 60 días y qué haría con cada uno («guardaría el PDF» es la señal de que abre los PDF y reconoce el mes). Después sigue solo en simulación.
 3. `modo = probar-avisos` y reinicia: debe llegar un mensaje de prueba por Telegram. Después sigue en simulación.
 4. Déjalo en simulación un rato y revisa el registro: cada vuelta dice qué haría.
@@ -48,3 +48,4 @@ Las pruebas de un solo uso regresan `modo` a `simular` por sí solas, para que u
 - Si Nextcloud o Home Assistant no responden en una vuelta, lo reintenta en la siguiente; los avisos pendientes se guardan.
 - La memoria del add-on (`/data/estado.json`) y sus opciones entran en los respaldos de Home Assistant. El `bancos.yml` que genera queda en la carpeta de configuración del add-on, solo para consulta.
 - El registro no muestra contraseñas.
+- Si el registro dice «No confío en el certificado de Nextcloud», el certificado es propio: saca su huella con `modo = huella`. Si dice «no coincide con la huella fijada», el certificado cambió: saca la huella nueva, o deja `nc_huella_sha256` vacía si ya es un certificado válido.
