@@ -149,12 +149,12 @@ def cargar(ruta=None):
     a = datos.get("avisos") or {}
     tipo = a.get("tipo", "home_assistant")
     if tipo == "home_assistant":
-        datos = a.get("datos") or {}
-        if not isinstance(datos, dict):
+        extra = a.get("datos") or {}
+        if not isinstance(extra, dict):
             raise ErrorConfig("avisos.datos debe ser un diccionario (campo: valor)")
         avisos = Avisos(tipo, url=str(a.get("url", "")).rstrip("/"),
                         servicio=a.get("servicio", "telegram_bot.send_message"), token=_env("HA_TOKEN", False),
-                        datos=datos)
+                        datos=extra)
         if not avisos.url or "." not in avisos.servicio:
             raise ErrorConfig('avisos: falta "url" o "servicio" (ej. telegram_bot.send_message)')
     elif tipo == "telegram":

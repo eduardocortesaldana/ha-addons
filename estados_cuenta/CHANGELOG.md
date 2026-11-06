@@ -1,5 +1,9 @@
 # Cambios
 
+## 1.0.3
+
+- Corrige 1.0.2: con `avisos.datos` se perdía la lista de bancos («No hay bancos activos»).
+
 ## 1.0.2
 
 - Avisos con `telegram_bot.send_message` (el `notify.telegram` de antes ya no existe en Home Assistant 2026.11): opciones `avisos_entidad` y `avisos_tema`.
