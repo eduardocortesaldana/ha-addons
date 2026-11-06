@@ -1,4 +1,9 @@
-"""Acceso a Nextcloud por WebDAV, con el certificado autofirmado fijado por su huella."""
+"""Acceso a Nextcloud por WebDAV.
+
+Con un certificado válido (por ejemplo de Let's Encrypt) el certificado se verifica como lo haría un
+navegador, con las autoridades de confianza del sistema. Con un certificado propio (autofirmado) se
+fija por su huella SHA-256: solo se acepta ese certificado exacto.
+"""
 import hashlib
 import socket
 import ssl
@@ -42,20 +47,39 @@ class AdaptadorConHuella(HTTPAdapter):
 
 
 class Nextcloud:
-    def __init__(self, url, usuario, clave, huella):
+    def __init__(self, url, usuario, clave, huella=""):
+        if not url.startswith(("https://", "http://")):
+            raise ErrorConfig(f"NC_URL debe empezar con https:// o http://: {url}")
         self.raiz = f"{url}/remote.php/dav/files/{quote(usuario, safe='')}/"
+        self.con_huella = bool(huella) and url.startswith("https://")
         self.s = requests.Session()
         self.s.auth = (usuario, clave)
         self.s.headers["User-Agent"] = "estados-cuenta"
-        if url.startswith("https://"):
-            if not huella:
-                raise ErrorConfig("Falta NC_CERT_SHA256 en .env. Sácala con:\n"
-                                  "  docker compose run --rm estados-cuenta python -m estados --huella")
-            # La cadena de confianza no sirve con un certificado autofirmado; en su lugar se exige
-            # la huella exacta. trust_env=False evita que REQUESTS_CA_BUNDLE reactive la verificación por CA.
+        if self.con_huella:
+            # Certificado propio: la cadena de confianza no sirve; en su lugar se exige la huella exacta.
+            # trust_env=False evita que REQUESTS_CA_BUNDLE reactive la verificación por CA.
             self.s.verify = False
             self.s.trust_env = False
             self.s.mount("https://", AdaptadorConHuella(huella))
+        # Sin huella, requests verifica el certificado con las autoridades de confianza del sistema
+        # (certifi), como un navegador: sirve para Let's Encrypt y cualquier certificado válido.
+
+    def _pedir(self, metodo, url, **kwargs):
+        """Una petición a Nextcloud; si el certificado no pasa, explica qué hacer."""
+        try:
+            return self.s.request(metodo, url, **kwargs)
+        except requests.exceptions.SSLError as e:
+            host = urlsplit(url).hostname
+            if self.con_huella:
+                raise RuntimeError(
+                    f"El certificado de Nextcloud ({host}) no coincide con la huella fijada en nc_huella_sha256. "
+                    "Si el certificado cambió (renovación, certificado nuevo), saca la huella nueva con "
+                    "modo = huella; si ahora es un certificado válido (por ejemplo de Let's Encrypt), "
+                    f"deja nc_huella_sha256 vacía. Detalle: {e}") from e
+            raise RuntimeError(
+                f"No confío en el certificado de Nextcloud ({host}): no lo firma una autoridad conocida. "
+                "Si es un certificado propio (autofirmado), saca su huella con modo = huella y ponla en "
+                f"nc_huella_sha256. Detalle: {e}") from e
 
     # ------------------------------------------------------------------ rutas
     def url_carpeta(self, carpeta):
@@ -81,7 +105,7 @@ class Nextcloud:
 
     def listar(self, carpeta):
         """{nombre: {etag, modificado}} de los archivos de la carpeta, o None si la carpeta no existe."""
-        r = self.s.request("PROPFIND", self.url_carpeta(carpeta), data=PROPFIND, timeout=60,
+        r = self._pedir("PROPFIND", self.url_carpeta(carpeta), data=PROPFIND, timeout=60,
                            headers={"Depth": "1", "Content-Type": "application/xml; charset=utf-8"})
         if r.status_code == 404:
             return None
@@ -107,24 +131,24 @@ class Nextcloud:
         ruta = ""
         for parte in [p for p in carpeta.strip("/").split("/") if p]:
             ruta = f"{ruta}/{parte}" if ruta else parte
-            r = self.s.request("MKCOL", self.url_carpeta(ruta), timeout=60)
+            r = self._pedir("MKCOL", self.url_carpeta(ruta), timeout=60)
             self._verificar(r, f'crear la carpeta "{ruta}"', permitidos=(405,))  # 405 = ya existe
 
     def descargar(self, carpeta, nombre):
-        r = self.s.get(self.url_archivo(carpeta, nombre), timeout=120)
+        r = self._pedir("GET", self.url_archivo(carpeta, nombre), timeout=120)
         return self._verificar(r, f'descargar "{nombre}"').content
 
     def subir(self, carpeta, nombre, datos):
-        r = self.s.put(self.url_archivo(carpeta, nombre), data=datos, timeout=120,
+        r = self._pedir("PUT", self.url_archivo(carpeta, nombre), data=datos, timeout=120,
                        headers={"If-None-Match": "*", "Content-Type": "application/pdf"})
         if r.status_code == 412:
             raise RuntimeError(f'Ya existe "{nombre}" en "{carpeta}"; no lo sobrescribo.')
         self._verificar(r, f'subir "{nombre}"')
 
     def mover(self, carpeta, origen, destino):
-        r = self.s.request("MOVE", self.url_archivo(carpeta, origen), timeout=60,
+        r = self._pedir("MOVE", self.url_archivo(carpeta, origen), timeout=60,
                            headers={"Destination": self.url_archivo(carpeta, destino), "Overwrite": "F"})
         self._verificar(r, f'renombrar "{origen}"')
 
     def borrar(self, carpeta, nombre):
-        self._verificar(self.s.delete(self.url_archivo(carpeta, nombre), timeout=60), f'borrar "{nombre}"')
+        self._verificar(self._pedir("DELETE", self.url_archivo(carpeta, nombre), timeout=60), f'borrar "{nombre}"')
